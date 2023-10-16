@@ -34,17 +34,19 @@ pub fn setup_timer(systimer: TimeBase) {
 
     critical_section::with(|cs| ALARM0.borrow_ref_mut(cs).replace(alarm0));
 
-    unwrap!(interrupt::enable(
+    unwrap!(unsafe{interrupt::enable(
         Interrupt::SYSTIMER_TARGET0,
-        interrupt::Priority::Priority1,
-    ));
+        interrupt::Priority::Priority15,
+        interrupt::CpuInterrupt::Interrupt28,
+    )});
 }
 
 pub fn setup_multitasking() {
-    unwrap!(interrupt::enable(
+    unwrap!(unsafe{interrupt::enable(
         Interrupt::FROM_CPU_INTR3,
-        interrupt::Priority::Priority1,
-    ));
+        interrupt::Priority::Priority15,
+        interrupt::CpuInterrupt::Interrupt27,
+    )});
 
     unsafe {
         riscv::interrupt::enable();
@@ -53,7 +55,7 @@ pub fn setup_multitasking() {
     while unsafe { crate::preempt::FIRST_SWITCH.load(core::sync::atomic::Ordering::Relaxed) } {}
 }
 
-#[interrupt]
+#[export_name="cpu_int_28_handler"]
 fn SYSTIMER_TARGET0(trap_frame: &mut TrapFrame) {
     // clear the systimer intr
     critical_section::with(|cs| {
@@ -63,7 +65,7 @@ fn SYSTIMER_TARGET0(trap_frame: &mut TrapFrame) {
     task_switch(trap_frame);
 }
 
-#[interrupt]
+#[export_name="cpu_int_27_handler"]
 fn FROM_CPU_INTR3(trap_frame: &mut TrapFrame) {
     unsafe {
         // clear FROM_CPU_INTR3

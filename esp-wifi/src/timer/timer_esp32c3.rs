@@ -6,14 +6,16 @@ use crate::{
 pub fn setup_radio_isr() {
     #[cfg(feature = "wifi")]
     {
-        unwrap!(interrupt::enable(
+        unwrap!(unsafe{interrupt::enable(
             Interrupt::WIFI_MAC,
-            interrupt::Priority::Priority1
-        ));
-        unwrap!(interrupt::enable(
+            interrupt::Priority::Priority15,
+            interrupt::CpuInterrupt::Interrupt30,
+        )});
+        unwrap!(unsafe{interrupt::enable(
             Interrupt::WIFI_PWR,
-            interrupt::Priority::Priority1
-        ));
+            interrupt::Priority::Priority15,
+            interrupt::CpuInterrupt::Interrupt29,
+        )});
     }
 
     #[cfg(feature = "ble")]
@@ -34,7 +36,7 @@ pub fn setup_radio_isr() {
 }
 
 #[cfg(feature = "wifi")]
-#[interrupt]
+#[export_name="cpu_int_30_handler"]
 fn WIFI_MAC() {
     unsafe {
         let (fnc, arg) = crate::wifi::os_adapter::ISR_INTERRUPT_1;
@@ -51,7 +53,7 @@ fn WIFI_MAC() {
 }
 
 #[cfg(feature = "wifi")]
-#[interrupt]
+#[export_name="cpu_int_29_handler"]
 fn WIFI_PWR() {
     unsafe {
         let (fnc, arg) = crate::wifi::os_adapter::ISR_INTERRUPT_1;
